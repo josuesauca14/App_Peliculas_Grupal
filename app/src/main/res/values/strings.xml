@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">MovieVault</string>
+    <string name="title_home">Películas Populares</string>
+    <string name="title_favorites">Mis Favoritos</string>
+    <string name="title_detail">Detalles</string>
+    <string name="search_placeholder">Buscar película...</string>
+    <string name="empty_favorites">No tienes películas favoritas aún.</string>
+    <string name="add_to_favorites">Añadir a Favoritos</string>
+    <string name="remove_from_favorites">Quitar de Favoritos</string>
+    <string name="motivation_text">Esta aplicación ha sido diseñada para demostrar el uso de MVVM, Jetpack Compose y persistencia de datos local con Room.</string>
+</resources>
