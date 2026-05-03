@@ -15,6 +15,9 @@ Aplicación Android para gestionar tu colección personal de películas. Permite
 ## 🚀 Características
 
 - **Listado de películas** con título, fecha, calificación y descripción.
+- **Búsqueda en tiempo real** por título desde la pantalla principal.
+- **Filtrado por género** mediante chips interactivos.
+- **Gestión de estados de UI** (Carga, Éxito, Error y Lista Vacía) para una mejor UX.
 - **Detalle completo** de cada película (género, duración, poster, overview).
 - **Crear y editar películas** mediante un formulario con selector de fecha y género.
 - **Marcar favoritos** y acceder a ellos desde una pantalla dedicada.
@@ -44,8 +47,8 @@ com.example.movievault
 ### Flujo de datos
 
 ```
-UI (Compose) ──► ViewModel ──► Repository ──► DAO (Room / SQLite)
-                                    ◄── Flow<List<Movie>> ◄──
+UI (Compose) ──► ViewModel (StateFlow<UiState>) ──► Repository ──► DAO (Room)
+                                          ◄── Flow<List<Movie>> ◄──
 ```
 
 ---

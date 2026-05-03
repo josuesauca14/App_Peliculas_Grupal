@@ -23,12 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.movievault.ui.components.MovieRatingBar
+import com.example.movievault.viewmodel.DetailUiState
 import com.example.movievault.viewmodel.DetailViewModel
 
 /**
- * Pantalla que muestra la información detallada de una película seleccionada.
- * Permite al usuario marcar/desmarcar la película como favorita, editar sus datos
- * o eliminarla de la base de datos local.
+ * DetailScreen: Proporciona una vista detallada de una película.
+ * Incluye la descripción completa, calificación, género y acciones para
+ * editar la información, eliminar la película o alternar su estado de favorito.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,115 +39,131 @@ fun DetailScreen(
     onBack: () -> Unit,
     onEditClick: () -> Unit
 ) {
-    val movie by viewModel.movieState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     
     LaunchedEffect(movieId) {
         viewModel.loadMovie(movieId)
     }
 
-    if (movie == null) return
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Confirmar eliminación") },
-            text = { Text("¿De verdad quieres eliminar esta película?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        viewModel.deleteMovie(onBack)
-                    }
-                ) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
-                }
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = uiState) {
+            is DetailUiState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Detalles", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.secondary)
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.toggleFavorite() },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(
-                    if (movie?.isFavorite == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Favorito"
+            is DetailUiState.Error -> {
+                Text(
+                    text = state.message,
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.error
                 )
             }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            AsyncImage(
-                model = movie?.posterPath,
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth().height(250.dp).background(Color.LightGray),
-                contentScale = ContentScale.Crop
-            )
-            
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(text = movie?.title ?: "", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
-                MovieRatingBar(rating = movie?.voteAverage ?: 0.0)
+            is DetailUiState.Success -> {
+                val movie = state.movie
                 
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background, RoundedCornerShape(16.dp)).padding(16.dp)) {
-                    InfoItem(icon = "📅", label = "Estreno:", value = movie?.releaseDate ?: "")
-                    InfoItem(icon = "🎭", label = "Género:", value = movie?.genre ?: "")
-                    InfoItem(icon = "⏱", label = "Duración:", value = movie?.duration ?: "")
+                if (showDeleteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteDialog = false },
+                        title = { Text("Confirmar eliminación") },
+                        text = { Text("¿De verdad quieres eliminar esta película?") },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    viewModel.deleteMovie(onBack)
+                                }
+                            ) {
+                                Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDeleteDialog = false }) {
+                                Text("Cancelar")
+                            }
+                        }
+                    )
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(text = movie?.overview ?: "", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onEditClick,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Editar", fontWeight = FontWeight.Bold)
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Detalles", fontWeight = FontWeight.Bold) },
+                            navigationIcon = {
+                                IconButton(onClick = onBack) {
+                                    Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.secondary)
+                                }
+                            }
+                        )
+                    },
+                    floatingActionButton = {
+                        FloatingActionButton(
+                            onClick = { viewModel.toggleFavorite() },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = Color.White,
+                            shape = CircleShape
+                        ) {
+                            Icon(
+                                if (movie.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Favorito"
+                            )
+                        }
                     }
-                    
-                    OutlinedButton(
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
-                        shape = RoundedCornerShape(16.dp)
+                ) { padding ->
+                    Column(
+                        modifier = Modifier
+                            .padding(padding)
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Eliminar", fontWeight = FontWeight.Bold)
+                        AsyncImage(
+                            model = movie.posterPath,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxWidth().height(250.dp).background(Color.LightGray),
+                            contentScale = ContentScale.Crop
+                        )
+                        
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Text(text = movie.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                            MovieRatingBar(rating = movie.voteAverage)
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background, RoundedCornerShape(16.dp)).padding(16.dp)) {
+                                InfoItem(icon = "📅", label = "Estreno:", value = movie.releaseDate)
+                                InfoItem(icon = "🎭", label = "Género:", value = movie.genre)
+                                InfoItem(icon = "⏱", label = "Duración:", value = movie.duration)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(text = movie.overview, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
+                            
+                            Spacer(modifier = Modifier.height(32.dp))
+                            
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(
+                                    onClick = onEditClick,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Editar", fontWeight = FontWeight.Bold)
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = { showDeleteDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Eliminar", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             }
